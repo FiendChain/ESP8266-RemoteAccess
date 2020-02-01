@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "esp_spi_flash.h": "c",
+        "spi.h": "c",
+        "stdbool.h": "c",
+        "gpio.h": "c",
+        "type_traits": "c"
+    },
+    "cmake.configureOnOpen": false
+}

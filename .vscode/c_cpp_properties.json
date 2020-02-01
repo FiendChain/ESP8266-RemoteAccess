@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "Mingw32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/build/include",
+                "C:/SPB_Data/esp/ESP8266_RTOS_SDK/components/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "C:\\msys32\\opt\\xtensa-lx106-elf\\bin\\xtensa-lx106-elf-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x86"
+        }
+    ],
+    "version": 4
+}
