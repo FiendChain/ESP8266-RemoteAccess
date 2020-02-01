@@ -11,8 +11,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define MAX_PWM_PINS 8
-
 static uint8_t pwm_values[MAX_PWM_PINS] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t current_cycle = 0;
 static uint32_t current_value = 0x0000; // cast 32bit for performance?
