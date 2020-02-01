@@ -13,7 +13,7 @@ Built off the RTOS SDK by Espressif for the ESP8266.
 * Add button/jumper for user initialisation on pre-boot
   * Connect to access point to configure settings
   * Connect to serial port to configure settings
->>* After restoring this button/jumper should execute user settings
+  * After restoring this button/jumper should execute user settings
     * Access point should be disabled after config
 * Add onboard software for advanced control of 8 channel PWM LED controller
   * Add list of pre-set patterns which are addressable remotely
