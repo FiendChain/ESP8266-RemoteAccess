@@ -10,7 +10,8 @@
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "__ESP_FILE__"
             ],
             "windowsSdkVersion": "10.0.18362.0",
             "compilerPath": "C:\\msys32\\opt\\xtensa-lx106-elf\\bin\\xtensa-lx106-elf-gcc.exe",

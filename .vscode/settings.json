@@ -4,7 +4,9 @@
         "spi.h": "c",
         "stdbool.h": "c",
         "gpio.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "nvs_flash.h": "c",
+        "cjson.h": "c"
     },
     "cmake.configureOnOpen": false
 }
