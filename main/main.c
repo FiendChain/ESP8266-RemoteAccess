@@ -25,7 +25,7 @@
 
 #include "shifted_pwm.h"
 #include "wifi_sta.h"
-#include "web_server.h"
+#include "web_server/web_server.h"
 #include "pc_io.h"
 
 #define INIT_TAG "initialisation"
