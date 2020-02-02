@@ -26,6 +26,7 @@
 #include "shifted_pwm.h"
 #include "wifi_sta.h"
 #include "web_server.h"
+#include "pc_io.h"
 
 #define INIT_TAG "initialisation"
 #define LED_GPIO 2
@@ -49,19 +50,24 @@ void app_main()
     }
 
     wifi_init_sta();
+    pc_io_init();
 
     PIN_FUNC_SELECT(PERIPHS_GPIO_MUX_REG(2), FUNC_GPIO2);
     xTaskCreate(&blink, "ledblink", 256, NULL, 1, NULL);
-    xTaskCreate(&update_pwm, "pwm_update", 2048, NULL, 1, NULL);
+    xTaskCreate(&update_pwm, "pwm_update", 256, NULL, 1, NULL);
     for (int i = 0; i < 8; i++) {
         set_pwm_value(i, i << 5);
     }
 
     server = start_webserver();
+    
+    // vTaskStartScheduler();
+    // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");
+    ESP_LOGI(INIT_TAG, "Finished initialisation!");
 }
 
 void ICACHE_FLASH_ATTR blink(void *ignore) {
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
 
     while (1) {
         gpio_set_level(GPIO_NUM_2, 0);
