@@ -10,6 +10,8 @@
 #define TOTAL_DATA_LENGTH 5 // 4 data and 1 checksum
 
 static uint8_t buffer[TOTAL_DATA_LENGTH] = {0};
+static uint8_t temperature = 0;
+static uint8_t humidity = 0;
 
 static int32_t dht11_wait_signal(uint32_t timeout, uint32_t level);
 static esp_err_t dht11_read_data();
@@ -106,6 +108,8 @@ esp_err_t dht11_read_data() {
         return ESP_FAIL;
     }
 
+    temperature = buffer[2];
+    humidity = buffer[0];
     return ESP_OK;
 }
 
@@ -121,9 +125,9 @@ int32_t dht11_wait_signal(uint32_t timeout, uint32_t level) {
 
 // dht11 only has a resolution of 1'C and 1% RH
 uint8_t dht11_get_temperature() { 
-    return buffer[2];
+    return temperature;
 }
 
 uint8_t dht11_get_humidity() {
-    return buffer[0];
+    return humidity;
 }
