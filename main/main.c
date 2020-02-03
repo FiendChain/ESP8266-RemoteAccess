@@ -57,7 +57,7 @@ void app_main()
     dht11_init();
 
     xTaskCreate(&update_pwm, "pwm_update", 256, NULL, 1, NULL);
-    xTaskCreate(&update_dht11, "dht11", 1024, NULL, 1, NULL);
+    // xTaskCreate(&update_dht11, "dht11", 1024, NULL, 1, NULL);
     for (int i = 0; i < 8; i++) {
         set_pwm_value(i, i << 5);
     }

@@ -4,6 +4,7 @@
 
 #include "pc_io_uri.h"
 #include "leds_uri.h"
+#include "dht11_uri.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -38,6 +39,13 @@ const httpd_uri_t pc_io_get_uri = {
     .user_ctx = NULL,
 };
 
+const httpd_uri_t dht11_get_url = {
+    .uri = "/api/v1/dht11",
+    .method = HTTP_GET,
+    .handler = dht11_get_handler,
+    .user_ctx = NULL,
+};
+
 httpd_handle_t start_webserver(void)
 {
     httpd_handle_t server = NULL;
@@ -52,6 +60,7 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &leds_get_uri);
         httpd_register_uri_handler(server, &pc_io_get_uri);
         httpd_register_uri_handler(server, &pc_io_post_uri);
+        httpd_register_uri_handler(server, &dht11_get_url);
         return server;
     }
 
