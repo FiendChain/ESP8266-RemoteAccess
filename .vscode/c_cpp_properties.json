@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/build/include",
-                "C:/SPB_Data/esp/ESP8266_RTOS_SDK/components/**"
+                "C:/SPB_Data/esp/ESP8266_RTOS_SDK/components/**",
+                "${workspaceFolder}/components/**"
             ],
             "defines": [
                 "_DEBUG",

@@ -27,12 +27,15 @@
 #include "wifi_sta.h"
 #include "web_server/web_server.h"
 #include "pc_io.h"
+#include "dht11.h"
+
+// #include <dht/dht.h>
 
 #define INIT_TAG "initialisation"
-#define LED_GPIO 2
 
 void ICACHE_FLASH_ATTR blink(void *ignore);
 void ICACHE_FLASH_ATTR update_pwm(void *ignore);
+void ICACHE_FLASH_ATTR update_dht11(void *ignore);
 
 
 static httpd_handle_t server = NULL;
@@ -51,10 +54,10 @@ void app_main()
 
     wifi_init_sta();
     pc_io_init();
+    dht11_init();
 
-    PIN_FUNC_SELECT(PERIPHS_GPIO_MUX_REG(2), FUNC_GPIO2);
-    xTaskCreate(&blink, "ledblink", 256, NULL, 1, NULL);
     xTaskCreate(&update_pwm, "pwm_update", 256, NULL, 1, NULL);
+    xTaskCreate(&update_dht11, "dht11", 1024, NULL, 1, NULL);
     for (int i = 0; i < 8; i++) {
         set_pwm_value(i, i << 5);
     }
@@ -66,16 +69,16 @@ void app_main()
     ESP_LOGI(INIT_TAG, "Finished initialisation!");
 }
 
-void ICACHE_FLASH_ATTR blink(void *ignore) {
-    gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
-
+void ICACHE_FLASH_ATTR update_dht11(void *ignore) {
+    vTaskDelay(1500 / portTICK_RATE_MS); // unstable 1 second period
     while (1) {
-        gpio_set_level(GPIO_NUM_2, 0);
-        vTaskDelay(500 / portTICK_RATE_MS);
-        gpio_set_level(GPIO_NUM_2, 1);
-        vTaskDelay(500 / portTICK_RATE_MS);
+        if (dht11_read() == ESP_OK) {
+            uint8_t temperature = dht11_get_temperature();
+            uint8_t humidity = dht11_get_humidity();
+            ESP_LOGI("dht11-task", "temperature: %d'C, humidity: %d%%", temperature, humidity);
+        }
+        vTaskDelay(2000 / portTICK_RATE_MS);
     }
-
     vTaskDelete(NULL);
 }
 
