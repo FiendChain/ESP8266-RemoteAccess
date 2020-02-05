@@ -1,5 +1,5 @@
 #include "pc_io_uri.h"
-#include "../pc_io.h"
+#include "pc_io.h"
 
 #include "cJSON.h"
 #include "esp_log.h"
