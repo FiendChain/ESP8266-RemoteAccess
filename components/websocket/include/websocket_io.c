@@ -23,9 +23,9 @@ static uint8_t read_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
 
 static esp_err_t websocket_read_data(httpd_req_t *request);
 
-esp_err_t websocket_write(httpd_req_t *request, char *data, int _length) {
+esp_err_t websocket_write(httpd_req_t *request, char *data, int _length, uint8_t opcode) {
     uint8_t length = MIN(PROTOCOL_BUFFER_SIZE, _length);
-    write_buffer[0] = 0x80 | 0x01;
+    write_buffer[0] = 0x80 | opcode;
     write_buffer[1] = length;
     memcpy(&write_buffer[2], data, length);
 
@@ -65,6 +65,9 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
         return ESP_OK;
     }
 
+    struct httpd_req_aux *ra = request->aux;
+
+    // int total_data = ra->sd->recv_fn(ra->sd->handle, ra->sd->fd, (char *)read_buffer, sizeof(read_buffer), 0);
     int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
     ESP_LOGI(TAG, "httpd response: %d", total_data);
     if (total_data >= 7) {            
@@ -79,7 +82,7 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
                     read_buffer[i+6] ^= read_buffer[2 + i % 4];
                 }
                 int8_t length = read_buffer[1] + 128;
-                callback(request, &read_buffer[6], length);
+                callback(request, opcode, &read_buffer[6], length);
             }
             break;
         case 0x08:

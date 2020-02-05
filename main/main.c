@@ -44,7 +44,7 @@ void ICACHE_FLASH_ATTR update_dht11(void *ignore);
 static httpd_handle_t server = NULL;
 static httpd_handle_t websocket = NULL;
 
-static void get_websocket(httpd_req_t *request, uint8_t *data, int length);
+static void get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length);
     
 static httpd_uri_t websocket_uri = {
     .uri = "/api/v1/websocket",
@@ -84,9 +84,18 @@ void app_main()
     ESP_LOGI(INIT_TAG, "Finished initialisation!");
 }
 
-void get_websocket(httpd_req_t *request, uint8_t *data, int length) {
-    ESP_LOGI("websocket-listener", "%.*s", length, data);
-    websocket_write(request, (char *)data, length);
+void get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+    if (opcode == WEBSOCKET_OPCODE_TEXT) {
+        ESP_LOGI("websocket-listener", "%.*s", length, data);
+    }
+    for (int i = 1; i < length; i=i+2) {
+        uint8_t pin = data[i-1];
+        uint8_t value = data[i];
+        ESP_LOGI("websocket-listener", "pin %u %u", pin, value);
+        set_pwm_value(pin, value);
+        if (pin >= MAX_PWM_PINS) continue;
+    }
+    // websocket_write(request, (char *)data, length, opcode);
 }
 
 void ICACHE_FLASH_ATTR update_dht11(void *ignore) {
