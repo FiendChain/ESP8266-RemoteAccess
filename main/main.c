@@ -28,7 +28,9 @@
 #include "web_server/web_server.h"
 #include "pc_io.h"
 #include "dht11.h"
-#include "websocket/websocket.h"
+
+#include "websocket.h"
+#include "websocket_io.h"
 
 // #include <dht/dht.h>
 
@@ -41,6 +43,15 @@ void ICACHE_FLASH_ATTR update_dht11(void *ignore);
 
 static httpd_handle_t server = NULL;
 static httpd_handle_t websocket = NULL;
+
+static void get_websocket(httpd_req_t *request, uint8_t *data, int length);
+    
+static httpd_uri_t websocket_uri = {
+    .uri = "/api/v1/websocket",
+    .method = HTTP_GET,
+    .handler = websocket_handler,
+    .user_ctx = get_websocket
+};
 
 void app_main()
 {
@@ -66,10 +77,16 @@ void app_main()
 
     server = start_webserver();
     websocket = start_websocket(8200);
+    httpd_register_uri_handler(websocket, &websocket_uri);
     
     // vTaskStartScheduler();
     // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");
     ESP_LOGI(INIT_TAG, "Finished initialisation!");
+}
+
+void get_websocket(httpd_req_t *request, uint8_t *data, int length) {
+    ESP_LOGI("websocket-listener", "%.*s", length, data);
+    websocket_write(request, (char *)data, length);
 }
 
 void ICACHE_FLASH_ATTR update_dht11(void *ignore) {
