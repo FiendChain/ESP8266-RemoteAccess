@@ -19,6 +19,7 @@ httpd_handle_t start_websocket(uint32_t port) {
     config.server_port = port;
     config.ctrl_port = 32767;
     config.recv_wait_timeout = 60 * 60 * 24; // 1 day timeout for recieve
+    config.lru_purge_enable = true;
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
