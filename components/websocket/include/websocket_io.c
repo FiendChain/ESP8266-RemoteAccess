@@ -66,6 +66,7 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
     }
 
     int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
+    ESP_LOGI(TAG, "httpd response: %d", total_data);
     if (total_data >= 7) {            
         uint8_t opcode = read_buffer[0] & 0x7F;
         // unmask
@@ -85,6 +86,9 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
             return ESP_FAIL;
         }
 
+    // invalid packet
+    } else {
+        return ESP_FAIL;
     }
     return ESP_OK;
 }
