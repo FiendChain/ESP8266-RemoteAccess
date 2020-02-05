@@ -1,4 +1,4 @@
-#include "websocket.h"
+#include "websocket_handshake.h"
 
 #include <esp_http_server.h>
 #include <esp_httpd_priv.h>
@@ -14,114 +14,9 @@
 #define TAG "websocket"
 #define BUFFER_SIZE 100
 
-static esp_err_t websocket_handler(httpd_req_t *request);
-static esp_err_t validate_websocket_request(httpd_req_t *request);
-static esp_err_t perform_websocket_handshake(httpd_req_t *request);
-static esp_err_t websocket_listener(void *pvParameters);
-static esp_err_t websocket_callback(httpd_req_t *request, char *data, int length);
-
 static const char *RFC6455_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 static char buffer[BUFFER_SIZE] = {0};
-
-static httpd_uri_t websocket_uri = {
-    .uri = "/api/v1/websocket",
-    .method = HTTP_GET,
-    .handler = websocket_handler,
-    .user_ctx = NULL
-};
-
-httpd_handle_t start_websocket(uint32_t port) {
-    httpd_handle_t server = NULL;
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.server_port = port;
-    config.ctrl_port = 32767;
-
-    // Start the httpd server
-    ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
-    if (httpd_start(&server, &config) == ESP_OK) {
-        // Set URI handlers
-        ESP_LOGI(TAG, "Registering websocket");
-        httpd_register_uri_handler(server, &websocket_uri);
-        return server;
-    }
-
-    ESP_LOGI(TAG, "Error starting server!");
-    return NULL;
-}
-
-esp_err_t websocket_handler(httpd_req_t *request) {
-    if (validate_websocket_request(request) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed validation");
-        return ESP_OK;
-    } 
-
-    if (perform_websocket_handshake(request) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed handshake");
-        return ESP_OK;
-    }
-
-    char send_buffer[100] = {0};
-
-    ESP_LOGI(TAG, "Starting data transmission");
-
-    xTaskHandle listener_handle;
-    xTaskCreate(websocket_listener, "websocket-listener", 2048, request, 2, &listener_handle);
-
-    for (int i = 0; ; i++) {
-        uint8_t total = snprintf(&send_buffer[2], sizeof(send_buffer)-2, "Hello there %d", i);
-        send_buffer[0] = 0x80 | 0x01;
-        send_buffer[1] = total;
-        if (httpd_send(request, send_buffer, total+2) <= 0) {
-            ESP_LOGI(TAG, "Closing websocket!");
-            break;
-        }
-        vTaskDelay(1000 / portTICK_RATE_MS);
-    }
-
-    vTaskDelete(listener_handle);
-
-    return ESP_OK;
-}
-
-esp_err_t websocket_listener(void *pvParameters) {
-    httpd_req_t *request = (httpd_req_t *)pvParameters;
-    ESP_LOGI(TAG, "Starting data listener");
-    char recieve_buffer[100] = {0};
-
-    while (1) {
-        int total_data = httpd_recv_with_opt(request, recieve_buffer, sizeof(recieve_buffer), false);
-        if (total_data >= 7) {            
-            uint8_t opcode = recieve_buffer[0] & 0x7F;
-            // unmask
-            switch (opcode) {
-            case 0x01: // binary
-            case 0x02: // text
-                if (total_data > 6) {
-                    total_data -= 6;
-                    for (int i = 0; i < total_data; i++) {
-                        recieve_buffer[i+6] ^= recieve_buffer[2 + i % 4];
-                    }
-                    int8_t length = recieve_buffer[1] + 128;
-                    websocket_callback(request, &recieve_buffer[6], length);
-                }
-                break;
-            case 0x08:
-                break;
-            }
-
-        }
-        vTaskDelay(1);
-    }
-
-    vTaskDelete(NULL);
-    return ESP_OK;
-}
-
-esp_err_t websocket_callback(httpd_req_t *request, char *data, int length) {
-    ESP_LOGI(TAG, "Got unmasked data: %.*s", length, data);
-    return ESP_OK;
-}
 
 esp_err_t perform_websocket_handshake(httpd_req_t *request) {
 
