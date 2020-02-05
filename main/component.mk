@@ -3,4 +3,4 @@
 #
 # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
 
-COMPONENT_SRCDIRS := . web_server
+COMPONENT_SRCDIRS := . web_server websocket

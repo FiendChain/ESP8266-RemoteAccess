@@ -28,6 +28,7 @@
 #include "web_server/web_server.h"
 #include "pc_io.h"
 #include "dht11.h"
+#include "websocket/websocket.h"
 
 // #include <dht/dht.h>
 
@@ -39,6 +40,7 @@ void ICACHE_FLASH_ATTR update_dht11(void *ignore);
 
 
 static httpd_handle_t server = NULL;
+static httpd_handle_t websocket = NULL;
 
 void app_main()
 {
@@ -63,6 +65,7 @@ void app_main()
     }
 
     server = start_webserver();
+    websocket = start_websocket(8200);
     
     // vTaskStartScheduler();
     // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");
