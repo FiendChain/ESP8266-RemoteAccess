@@ -21,7 +21,7 @@
 static uint8_t write_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
 static uint8_t read_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
 
-static void websocket_listener(void *pvParameters);
+static esp_err_t websocket_read_data(httpd_req_t *request);
 
 esp_err_t websocket_write(httpd_req_t *request, char *data, int _length) {
     uint8_t length = MIN(PROTOCOL_BUFFER_SIZE, _length);
@@ -48,51 +48,43 @@ esp_err_t websocket_handler(httpd_req_t *request) {
     }
 
     ESP_LOGI(TAG, "Starting websocket");
-    xTaskHandle listener_handle;
-    xTaskCreate(websocket_listener, "websocket-listener", 2048, request, 2, &listener_handle);
     while (1) {
-        if (!httpd_validate_req_ptr(request)) {
+        if (websocket_read_data(request) != ESP_OK) {
             break;
-        } 
-        vTaskDelay(100 / portTICK_RATE_MS);
+        }
+        vTaskDelay(1);
     }
-
-    vTaskDelete(listener_handle);
+    ESP_LOGI(TAG, "Closing websocket");
 
     return ESP_OK;
 }
 
-void websocket_listener(void *pvParameters) {
-    httpd_req_t *request = (httpd_req_t *)pvParameters;
+esp_err_t websocket_read_data(httpd_req_t *request) {
     websocket_recieve_callback callback = (websocket_recieve_callback)(request->user_ctx);
     if (callback == NULL) {
-        return;
+        return ESP_OK;
     }
 
-    ESP_LOGI(TAG, "Starting data listener");
-
-    while (1) {
-        int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
-        if (total_data >= 7) {            
-            uint8_t opcode = read_buffer[0] & 0x7F;
-            // unmask
-            switch (opcode) {
-            case 0x01: // binary
-            case 0x02: // text
-                if (total_data > 6) {
-                    total_data -= 6;
-                    for (int i = 0; i < total_data; i++) {
-                        read_buffer[i+6] ^= read_buffer[2 + i % 4];
-                    }
-                    int8_t length = read_buffer[1] + 128;
-                    callback(request, &read_buffer[6], length);
+    int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
+    if (total_data >= 7) {            
+        uint8_t opcode = read_buffer[0] & 0x7F;
+        // unmask
+        switch (opcode) {
+        case 0x01: // binary
+        case 0x02: // text
+            if (total_data > 6) {
+                total_data -= 6;
+                for (int i = 0; i < total_data; i++) {
+                    read_buffer[i+6] ^= read_buffer[2 + i % 4];
                 }
-                break;
-            case 0x08:
-                break;
+                int8_t length = read_buffer[1] + 128;
+                callback(request, &read_buffer[6], length);
             }
-
+            break;
+        case 0x08:
+            return ESP_FAIL;
         }
-        vTaskDelay(1);
+
     }
+    return ESP_OK;
 }
