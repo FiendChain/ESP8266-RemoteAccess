@@ -6,7 +6,11 @@
         "gpio.h": "c",
         "type_traits": "c",
         "nvs_flash.h": "c",
-        "cjson.h": "c"
+        "cjson.h": "c",
+        "esp_websocket_client.h": "c",
+        "esp_event.h": "c",
+        "cerrno": "c",
+        "esp_httpd_priv.h": "c"
     },
     "cmake.configureOnOpen": false
 }
