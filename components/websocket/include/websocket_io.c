@@ -20,6 +20,7 @@
 
 static uint8_t write_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
 static uint8_t read_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
+static uint8_t exit_response[1] = {0x80};
 
 static esp_err_t websocket_read_data(httpd_req_t *request);
 
@@ -65,8 +66,7 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
         return ESP_OK;
     }
 
-    struct httpd_req_aux *ra = request->aux;
-
+    // struct httpd_req_aux *ra = request->aux;
     // int total_data = ra->sd->recv_fn(ra->sd->handle, ra->sd->fd, (char *)read_buffer, sizeof(read_buffer), 0);
     int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
     ESP_LOGI(TAG, "httpd response: %d", total_data);
@@ -88,9 +88,10 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
         case 0x08:
             return ESP_FAIL;
         }
-
-    // invalid packet
+    // invalid packet 
     } else {
+        ESP_LOGE(TAG, "Websocket failed!");
+        websocket_write(request, (char *)exit_response, sizeof(exit_response), WEBSOCKET_OPCODE_BIN);
         return ESP_FAIL;
     }
     return ESP_OK;

@@ -36,15 +36,11 @@
 
 #define INIT_TAG "initialisation"
 
-void ICACHE_FLASH_ATTR blink(void *ignore);
-void ICACHE_FLASH_ATTR update_pwm(void *ignore);
-void ICACHE_FLASH_ATTR update_dht11(void *ignore);
-
+static ICACHE_FLASH_ATTR void get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length);
 
 static httpd_handle_t server = NULL;
 static httpd_handle_t websocket = NULL;
 
-static void get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length);
     
 static httpd_uri_t websocket_uri = {
     .uri = "/api/v1/websocket",
@@ -69,8 +65,6 @@ void app_main()
     pc_io_init();
     dht11_init();
 
-    xTaskCreate(&update_pwm, "pwm_update", 256, NULL, 1, NULL);
-    // xTaskCreate(&update_dht11, "dht11", 1024, NULL, 1, NULL);
     for (int i = 0; i < 8; i++) {
         set_pwm_value(i, i << 5);
     }
@@ -84,7 +78,7 @@ void app_main()
     ESP_LOGI(INIT_TAG, "Finished initialisation!");
 }
 
-void get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+void ICACHE_FLASH_ATTR get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
     if (opcode == WEBSOCKET_OPCODE_TEXT) {
         ESP_LOGI("websocket-listener", "%.*s", length, data);
     }
@@ -96,44 +90,4 @@ void get_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int leng
         if (pin >= MAX_PWM_PINS) continue;
     }
     // websocket_write(request, (char *)data, length, opcode);
-}
-
-void ICACHE_FLASH_ATTR update_dht11(void *ignore) {
-    vTaskDelay(1500 / portTICK_RATE_MS); // unstable 1 second period
-    while (1) {
-        if (dht11_read() == ESP_OK) {
-            uint8_t temperature = dht11_get_temperature();
-            uint8_t humidity = dht11_get_humidity();
-            ESP_LOGI("dht11-task", "temperature: %d'C, humidity: %d%%", temperature, humidity);
-        }
-        vTaskDelay(2000 / portTICK_RATE_MS);
-    }
-    vTaskDelete(NULL);
-}
-
-void ICACHE_FLASH_ATTR update_pwm(void *ignore) {
-    uint8_t is_rising = 1;
-    const uint8_t step_size = 8; 
-
-    while (1) {
-        int16_t pwm = get_pwm_value(0);
-        if (is_rising) {
-            pwm += step_size;
-            if (pwm >= MAX_PWM_CYCLES) {
-                pwm = MAX_PWM_CYCLES;
-                is_rising = 0;
-            }
-        } else {
-            pwm -= step_size;
-            if (pwm <= 0) {
-                pwm = 0;
-                is_rising = 1;
-            }
-        }
-
-        set_pwm_value(0, pwm & 0xFF);
-        vTaskDelay(100 / portTICK_RATE_MS);
-    }
-
-    vTaskDelete(NULL);
 }
