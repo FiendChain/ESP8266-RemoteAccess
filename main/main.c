@@ -63,7 +63,7 @@ void app_main()
         set_pwm_value(i, 0);
     }
 
-    websocket = start_websocket(8200);
+    websocket = start_websocket(80);
     httpd_register_uri_handler(websocket, &websocket_uri);
     // vTaskStartScheduler();
     // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");

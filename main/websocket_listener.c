@@ -4,16 +4,106 @@
 #include "pc_io.h"
 #include "dht11.h"
 
-void ICACHE_FLASH_ATTR listen_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
-    if (opcode == WEBSOCKET_OPCODE_TEXT) {
-        ESP_LOGI("websocket-listener", "%.*s", length, data);
+#include <esp_log.h>
+
+#define DHT11_CMD 0x03
+#define PC_IO_CMD 0x02
+#define LED_CMD 0x01
+
+#define PC_IO_OFF   0x01
+#define PC_IO_ON    0x02
+#define PC_IO_RESET 0x03
+#define PC_IO_STATUS 0x04
+
+#define LED_SET 0x01
+#define LED_GET 0x02
+
+static void handle_dht11(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length);
+static void handle_pc_io(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length);
+static void handle_led(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length);
+
+#define REPLY_BUFFER_SIZE 100
+static uint8_t reply_buffer[REPLY_BUFFER_SIZE] = {0};
+
+void listen_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+    if (length < 1) {
+        return;
     }
-    for (int i = 1; i < length; i=i+2) {
-        uint8_t pin = data[i-1];
-        uint8_t value = data[i];
-        // ESP_LOGI("websocket-listener", "pin %u %u", pin, value);
-        set_pwm_value(pin, value);
-        if (pin >= MAX_PWM_PINS) continue;
+
+    uint8_t cmd_code = data[0];
+    uint8_t *cmd_data = &data[1];
+    int cmd_length = length-1;
+
+    switch (cmd_code) {
+    case LED_CMD:   handle_led(request, opcode, cmd_data, cmd_length); break;
+    case PC_IO_CMD: handle_pc_io(request, opcode, cmd_data, cmd_length); break;
+    case DHT11_CMD: handle_dht11(request, opcode, cmd_data, cmd_length); break;
+    default:        ESP_LOGI("websocket-listener", "Unknown cmd: 0x%02x", cmd_code); break;
     }
-    // websocket_write(request, (char *)data, length, opcode);
+}
+
+void handle_dht11(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+    ESP_LOGI("dht11-websocket", "Got request");
+    reply_buffer[0] = DHT11_CMD;
+    if (dht11_read() != ESP_OK) {
+        reply_buffer[1] = 0xFF;
+        websocket_write(request, (char *)reply_buffer, 2, opcode);
+        return;
+    }
+    reply_buffer[1] = dht11_get_humidity();
+    reply_buffer[2] = dht11_get_temperature();
+    websocket_write(request, (char *)reply_buffer, 3, opcode);
+}
+
+void handle_pc_io(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+    if (length < 1) {
+        return;
+    }
+    uint8_t cmd = data[0];
+    ESP_LOGI("pc-io-websocket", "Got command: 0x%02x", cmd);
+    esp_err_t resp_status = ESP_OK;
+    switch (cmd) {
+    case PC_IO_OFF:     resp_status = pc_io_power_off();    break;
+    case PC_IO_ON:      resp_status = pc_io_power_on();     break;
+    case PC_IO_RESET:   resp_status = pc_io_reset();        break;
+    case PC_IO_STATUS:  pc_io_is_powered() ? (resp_status = ESP_OK) : (resp_status = ESP_FAIL); break;
+    default:            ESP_LOGI("pc-io-websocket", "Unknown command: 0x%02x", cmd); return;
+    }
+
+    reply_buffer[0] = PC_IO_CMD;
+    reply_buffer[1] = cmd;
+    
+    if (resp_status == ESP_OK) {
+        reply_buffer[2] = 0x01;
+    } else {
+        reply_buffer[2] = 0x00;
+    }
+    websocket_write(request, (char *)reply_buffer, 3, opcode);
+}
+
+void handle_led(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+    if (length < 1) {
+        return;
+    }
+    uint8_t mode = data[0];
+    if (mode == LED_GET) {
+        reply_buffer[0] = LED_CMD;
+        reply_buffer[1] = LED_GET;
+        reply_buffer[2] = MAX_PWM_PINS;
+        for (int i = 0; i < MAX_PWM_PINS; i++) {
+            reply_buffer[3+i] = get_pwm_value(i);
+        }
+        websocket_write(request, (char *)reply_buffer, 3 + MAX_PWM_PINS, opcode);
+    } else if (mode == LED_SET) {
+        for (int i = 1; i < length-1; i+=2) {
+            uint8_t pin = data[i];
+            uint8_t value = data[i+1];
+            if (pin < MAX_PWM_PINS) {
+                set_pwm_value(pin, value);
+            }
+        }
+        reply_buffer[0] = LED_CMD;
+        reply_buffer[1] = LED_SET;
+        websocket_write(request, (char *)reply_buffer, 2, opcode);
+    }
 }

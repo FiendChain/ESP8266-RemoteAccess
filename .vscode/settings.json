@@ -11,7 +11,8 @@
         "esp_event.h": "c",
         "cerrno": "c",
         "esp_httpd_priv.h": "c",
-        "esp_http_server.h": "c"
+        "esp_http_server.h": "c",
+        "esp_heap_port.h": "c"
     },
     "cmake.configureOnOpen": false
 }
