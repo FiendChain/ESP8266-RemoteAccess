@@ -12,11 +12,13 @@
 #include <freertos/task.h>
 
 #define TAG "websocket"
-#define BUFFER_SIZE 100
+#define BUFFER_SIZE 256
 
 static const char *RFC6455_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 static char buffer[BUFFER_SIZE] = {0};
+static uint8_t sha1_sum[20] = {0};
+static unsigned char encoded_key[100] = {0};
 
 esp_err_t perform_websocket_handshake(httpd_req_t *request) {
 
@@ -35,10 +37,8 @@ esp_err_t perform_websocket_handshake(httpd_req_t *request) {
     int key_length = strnlen(buffer, BUFFER_SIZE);
     ESP_LOGI(TAG, "Concantenated key as: %s", buffer);
     // sha1
-    static uint8_t sha1_sum[20] = {0};
     mbedtls_sha1((unsigned char *)buffer, key_length, sha1_sum);
     // base64
-    static unsigned char encoded_key[100] = {0};
     size_t encoded_key_length = 0;
     int status = mbedtls_base64_encode(encoded_key, sizeof(encoded_key), &encoded_key_length, sha1_sum, 20);
     if (status != 0) {

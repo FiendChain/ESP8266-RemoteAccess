@@ -20,7 +20,7 @@
 
 static uint8_t write_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
 static uint8_t read_buffer[PROTOCOL_BUFFER_SIZE+2] = {0};
-static uint8_t exit_response[1] = {0x80};
+static uint8_t exit_response[2] = {0x80, 0x00};
 
 static esp_err_t websocket_read_data(httpd_req_t *request);
 
@@ -31,7 +31,7 @@ esp_err_t websocket_write(httpd_req_t *request, char *data, int _length, uint8_t
     memcpy(&write_buffer[2], data, length);
 
     if (httpd_send(request, (char *)write_buffer, length+2) <= 0) {
-        ESP_LOGI(TAG, "Closing websocket!");
+        ESP_LOGI(TAG, "Failed send");
         return ESP_FAIL;
     }
     return ESP_OK;
@@ -69,23 +69,32 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
     // struct httpd_req_aux *ra = request->aux;
     // int total_data = ra->sd->recv_fn(ra->sd->handle, ra->sd->fd, (char *)read_buffer, sizeof(read_buffer), 0);
     int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
+    // int total_data = httpd_recv_with_opt(request, (char *)read_buffer, sizeof(read_buffer), false);
     ESP_LOGI(TAG, "httpd response: %d", total_data);
     if (total_data >= 7) {            
         uint8_t opcode = read_buffer[0] & 0x7F;
         // unmask
         switch (opcode) {
-        case 0x01: // binary
-        case 0x02: // text
+        case WEBSOCKET_OPCODE_BIN: // binary
+        case WEBSOCKET_OPCODE_TEXT: // text
+        case WEBSOCKET_OPCODE_PING:
             if (total_data > 6) {
                 total_data -= 6;
                 for (int i = 0; i < total_data; i++) {
                     read_buffer[i+6] ^= read_buffer[2 + i % 4];
                 }
                 int8_t length = read_buffer[1] + 128;
-                callback(request, opcode, &read_buffer[6], length);
+                if (opcode != WEBSOCKET_OPCODE_PING) {
+                    callback(request, opcode, &read_buffer[6], length);
+                } else {
+                    ESP_LOGI(TAG, "Client send ping");
+                    websocket_write(request, (char *)&read_buffer[6], length, WEBSOCKET_OPCODE_PONG);
+                }
             }
             break;
-        case 0x08:
+        
+        case WEBSOCKET_OPCODE_CLOSE:
+            ESP_LOGE(TAG, "Client closing websocket");
             return ESP_FAIL;
         }
     // invalid packet 
