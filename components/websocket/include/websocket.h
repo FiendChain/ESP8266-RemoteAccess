@@ -3,6 +3,7 @@
 
 #include <esp_http_server.h>
 
+#define WEBSOCKET_OPCODE_CONTINUATION 0x00
 #define WEBSOCKET_OPCODE_TEXT 0x01
 #define WEBSOCKET_OPCODE_BIN 0x02
 #define WEBSOCKET_OPCODE_PING 0x09

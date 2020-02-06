@@ -40,24 +40,21 @@ esp_err_t websocket_write(httpd_req_t *request, char *data, int _length, uint8_t
 esp_err_t websocket_handler(httpd_req_t *request) {
     if (validate_websocket_request(request) != ESP_OK) {
         ESP_LOGE(TAG, "Failed validation");
-        return ESP_OK;
+        return ESP_FAIL;
     } 
 
     if (perform_websocket_handshake(request) != ESP_OK) {
         ESP_LOGE(TAG, "Failed handshake");
-        return ESP_OK;
+        return ESP_FAIL;
     }
 
     ESP_LOGI(TAG, "Starting websocket");
-    while (1) {
-        if (websocket_read_data(request) != ESP_OK) {
-            break;
-        }
-        vTaskDelay(1);
+    while (websocket_read_data(request) == ESP_OK) {
+
     }
     ESP_LOGI(TAG, "Closing websocket");
 
-    return ESP_OK;
+    return ESP_FAIL;
 }
 
 esp_err_t websocket_read_data(httpd_req_t *request) {
@@ -75,8 +72,9 @@ esp_err_t websocket_read_data(httpd_req_t *request) {
         uint8_t opcode = read_buffer[0] & 0x7F;
         // unmask
         switch (opcode) {
-        case WEBSOCKET_OPCODE_BIN: // binary
-        case WEBSOCKET_OPCODE_TEXT: // text
+        case WEBSOCKET_OPCODE_CONTINUATION:
+        case WEBSOCKET_OPCODE_BIN: 
+        case WEBSOCKET_OPCODE_TEXT: 
         case WEBSOCKET_OPCODE_PING:
             if (total_data > 6) {
                 total_data -= 6;
