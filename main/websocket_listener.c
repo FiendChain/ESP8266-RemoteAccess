@@ -2,6 +2,7 @@
 
 #include "shifted_pwm.h"
 #include "pc_io.h"
+#include "pc_io_interrupt.h"
 #include "dht11.h"
 
 #include <esp_log.h>
@@ -24,10 +25,11 @@ static void handle_led(httpd_req_t *request, uint8_t opcode, uint8_t *data, int 
 
 #define REPLY_BUFFER_SIZE 100
 static uint8_t reply_buffer[REPLY_BUFFER_SIZE] = {0};
+static void pc_io_status_listener(bool is_powered, void *args);
 
-void listen_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
+esp_err_t listen_websocket_data(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
     if (length < 1) {
-        return;
+        return ESP_FAIL;
     }
 
     uint8_t cmd_code = data[0];
@@ -38,12 +40,23 @@ void listen_websocket(httpd_req_t *request, uint8_t opcode, uint8_t *data, int l
     case LED_CMD:   handle_led(request, opcode, cmd_data, cmd_length); break;
     case PC_IO_CMD: handle_pc_io(request, opcode, cmd_data, cmd_length); break;
     case DHT11_CMD: handle_dht11(request, opcode, cmd_data, cmd_length); break;
-    default:        ESP_LOGI("websocket-listener", "Unknown cmd: 0x%02x", cmd_code); break;
+    default:        ESP_LOGD("websocket-listener", "Unknown cmd: 0x%02x", cmd_code); break;
     }
+
+    return ESP_OK;
 }
 
+esp_err_t listen_websocket_start(httpd_req_t *request) {
+    return pc_io_status_listen(pc_io_status_listener, (void *)request);
+}
+
+esp_err_t listen_websocket_exit(httpd_req_t *request) {
+    return pc_io_status_unlisten(pc_io_status_listener, (void *)request);
+}
+
+
 void handle_dht11(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
-    ESP_LOGI("dht11-websocket", "Got request");
+    ESP_LOGD("dht11-websocket", "Got request");
     reply_buffer[0] = DHT11_CMD;
     if (dht11_read() != ESP_OK) {
         reply_buffer[1] = 0xFF;
@@ -60,7 +73,7 @@ void handle_pc_io(httpd_req_t *request, uint8_t opcode, uint8_t *data, int lengt
         return;
     }
     uint8_t cmd = data[0];
-    ESP_LOGI("pc-io-websocket", "Got command: 0x%02x", cmd);
+    ESP_LOGD("pc-io-websocket", "Got command: 0x%02x", cmd);
     esp_err_t resp_status = ESP_OK;
     switch (cmd) {
     case PC_IO_OFF:     resp_status = pc_io_power_off();    break;
@@ -79,6 +92,19 @@ void handle_pc_io(httpd_req_t *request, uint8_t opcode, uint8_t *data, int lengt
         reply_buffer[2] = 0x00;
     }
     websocket_write(request, (char *)reply_buffer, 3, opcode);
+}
+
+void pc_io_status_listener(bool is_powered, void *args) {
+    httpd_req_t *request = (httpd_req_t *)args;
+    if (request == NULL) {
+        return;
+    }
+
+    reply_buffer[0] = PC_IO_CMD;
+    reply_buffer[1] = PC_IO_STATUS;
+    reply_buffer[2] = is_powered ? 0x01 : 0x00;
+    ESP_LOGD("websocket-listener-pc-io", "ISR is_powered: %d", is_powered);
+    websocket_write(request, (char *)reply_buffer, 3, WEBSOCKET_OPCODE_BIN);
 }
 
 void handle_led(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length) {
@@ -102,8 +128,9 @@ void handle_led(httpd_req_t *request, uint8_t opcode, uint8_t *data, int length)
                 set_pwm_value(pin, value);
             }
         }
-        reply_buffer[0] = LED_CMD;
-        reply_buffer[1] = LED_SET;
-        websocket_write(request, (char *)reply_buffer, 2, opcode);
+        // disable reply since limits bandwidth
+        // reply_buffer[0] = LED_CMD;
+        // reply_buffer[1] = LED_SET;
+        // websocket_write(request, (char *)reply_buffer, 2, opcode);
     }
 }

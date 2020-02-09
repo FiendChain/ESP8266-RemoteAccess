@@ -35,13 +35,11 @@
 #define INIT_TAG "initialisation"
 
 static httpd_handle_t websocket = NULL;
-static esp_err_t websocket_start(httpd_req_t *request);
-static esp_err_t websocket_end(httpd_req_t *request);
 
 static websocket_ctx websocket_uri_context = {
-    .on_start = websocket_start,
-    .on_recieve = listen_websocket,
-    .on_exit = websocket_end,
+    .on_start = listen_websocket_start,
+    .on_recieve = listen_websocket_data,
+    .on_exit = listen_websocket_exit,
 };
 
 static httpd_uri_t websocket_uri = {
@@ -64,8 +62,8 @@ void app_main()
     }
 
     wifi_init_sta();
-    pc_io_init();
     dht11_init();
+    pc_io_init();
 
     for (int i = 0; i < 8; i++) {
         set_pwm_value(i, 0);
@@ -76,14 +74,4 @@ void app_main()
     // vTaskStartScheduler();
     // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");
     ESP_LOGI(INIT_TAG, "Finished initialisation!");
-}
-
-esp_err_t websocket_start(httpd_req_t *request) {
-    ESP_LOGI("websocket-start", "Websocket has started");
-    return ESP_OK;
-}
-
-esp_err_t websocket_end(httpd_req_t *request) {
-    ESP_LOGI("websocket-end", "Websocket has ended");
-    return ESP_OK;
 }
