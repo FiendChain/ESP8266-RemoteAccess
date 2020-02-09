@@ -1,4 +1,5 @@
 #include "pc_io.h"
+#include "pc_io_interrupt.h"
 
 #include "driver/gpio.h"
 
@@ -47,8 +48,18 @@ void pc_io_init() {
     gpio_set_level(RESET_SW_PIN, 0);
     gpio_set_direction(POWER_STATUS_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(POWER_STATUS_PIN, GPIO_PULLDOWN_ONLY);
+    // ISR for power status
+    pc_io_interrupt_init();
+    gpio_set_intr_type(POWER_STATUS_PIN, GPIO_INTR_ANYEDGE);
+    gpio_install_isr_service(0);
+    if (gpio_isr_handler_add(POWER_STATUS_PIN, pc_io_status_interrupt, NULL)) {
+        ESP_LOGE(TAG, "Failed to setup ISR for pc status");
+    } else {
+        ESP_LOGI(TAG, "Successfully register ISR for pc status");
+    }
     ESP_LOGD(TAG, "Finished setting up gpio");
 
+    // create async timers for tasks
     power_on_timer = xTimerCreate("power-on-timer", 0, pdFALSE, NULL, pc_io_power_on_task);
     reset_timer = xTimerCreate("reset-timer", 0, pdFALSE, NULL, pc_io_reset_task);
     power_off_timer = xTimerCreate("power-off-timer", 0, pdFALSE, NULL, pc_io_power_off_task);
