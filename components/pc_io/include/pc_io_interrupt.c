@@ -5,10 +5,12 @@
 #include <stdbool.h>
 
 #include <esp_log.h>
+#include <driver/gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
 
+#define TAG "pc-io-interrupt"
 #define LL_TAG "pc-io-linked-list"
 
 typedef struct pc_io_status_listener_node {
@@ -19,13 +21,22 @@ typedef struct pc_io_status_listener_node {
 
 static pc_io_status_listener_node *listeners = NULL; 
 static xQueueHandle event_queue = NULL;
-static void pc_io_interrupt_task(void *arg);
 
+static void pc_io_interrupt_task(void *arg);
+static void pc_io_status_interrupt(void *ignore);
 
 
 void pc_io_interrupt_init() {
     event_queue = xQueueCreate(10, sizeof(uint32_t));
     xTaskCreate(pc_io_interrupt_task, "pc-io-int-task", 2048, NULL, 10, NULL);
+    gpio_set_intr_type(POWER_STATUS_PIN, GPIO_INTR_ANYEDGE);
+    gpio_install_isr_service(0);
+    if (gpio_isr_handler_add(POWER_STATUS_PIN, pc_io_status_interrupt, NULL)) {
+        ESP_LOGE(TAG, "Failed to setup ISR for pc status");
+    } else {
+        ESP_LOGD(TAG, "Successfully register ISR for pc status");
+    }
+    ESP_LOGD(TAG, "Successfully setup pc io interrupts");
 }
 
 void pc_io_status_interrupt(void *ignore) {
