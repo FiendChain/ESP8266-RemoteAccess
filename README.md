@@ -5,8 +5,14 @@ Built off the RTOS SDK by Espressif for the ESP8266.
 
 ### Completed
 * Basic WiFi connectivity to local WLAN 
-* Basic RESTful server
+* Websocket implemented
     * Setting and getting of PWM channels
+    * Controlling PC I/O for remote boot and reset
+    * Getting PC power status
+    * Getting temperature and humidity information
+* Client software
+  * Autoconnect to the server
+  * Able to connect over local WLAN or remotely through a static ip (port forwarding)
 
 ### TODO 
 #### Micontroller
@@ -15,11 +21,6 @@ Built off the RTOS SDK by Espressif for the ESP8266.
   * Connect to serial port to configure settings
   * After restoring this button/jumper should execute user settings
     * Access point should be disabled after config
-* Add onboard software for advanced control of 8 channel PWM LED controller
-  * Add list of pre-set patterns which are addressable remotely
-  * Add direct streaming of PWM data to microcontroller 
-* Add support for remote boot and reset
-  * Add corresponding URIs to server
 * Add user authentication for server
 * Add support for OTA (over the air) updates
 * Add power management software to reduce power consumption when idle
@@ -27,7 +28,10 @@ Built off the RTOS SDK by Espressif for the ESP8266.
   * Look into deep sleep in SDK
 
 #### Desktop/Mobile app
-* Use the restful api 
+* Use websockets
   * Provide corresponding user authentication details
-  * Autoconnect to the server
-  * Should be able to connect over local WLAN or remotely through a static ip (port forwarding?)
+
+#### Issues
+* Encryption for secure access slows down ESP dramatically
+  * Could implement proxy so that authentication is done between client and server
+  * Would still be insecure over local network
