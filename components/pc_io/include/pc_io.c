@@ -9,15 +9,6 @@
 
 #include "esp_log.h"
 
-#define POWER_SW_PIN 5
-#define POWER_SW_FUNC FUNC_GPIO5
-
-#define RESET_SW_PIN 4
-#define RESET_SW_FUNC FUNC_GPIO4
-
-#define POWER_STATUS_PIN 12
-#define POWER_STATUS_FUNC FUNC_GPIO12
-
 #define GPIO_PIN_TO_MASK(x) (1 << x)
 
 #define TAG "pc-io"
@@ -49,15 +40,9 @@ void pc_io_init() {
     gpio_set_direction(POWER_STATUS_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(POWER_STATUS_PIN, GPIO_PULLDOWN_ONLY);
     // ISR for power status
-    pc_io_interrupt_init();
-    gpio_set_intr_type(POWER_STATUS_PIN, GPIO_INTR_ANYEDGE);
-    gpio_install_isr_service(0);
-    if (gpio_isr_handler_add(POWER_STATUS_PIN, pc_io_status_interrupt, NULL)) {
-        ESP_LOGE(TAG, "Failed to setup ISR for pc status");
-    } else {
-        ESP_LOGI(TAG, "Successfully register ISR for pc status");
-    }
     ESP_LOGD(TAG, "Finished setting up gpio");
+
+    pc_io_interrupt_init();
 
     // create async timers for tasks
     power_on_timer = xTimerCreate("power-on-timer", 0, pdFALSE, NULL, pc_io_power_on_task);
@@ -71,15 +56,18 @@ esp_err_t start_pc_io_timer(TimerHandle_t handle) {
     if (!pc_io_busy) {
         pc_io_busy = true;
         xTimerStart(handle, 0);
-        ESP_LOGI(TAG, "pc io executed timer");
+        ESP_LOGD(TAG, "pc io executed timer");
         return ESP_OK;
     }
-    ESP_LOGI(TAG, "pc io busy");
+    ESP_LOGD(TAG, "pc io busy");
     return ESP_FAIL;
 }
 
 esp_err_t pc_io_power_on() {
-    return start_pc_io_timer(power_on_timer);
+    if (!pc_io_is_powered()) {
+        return start_pc_io_timer(power_on_timer);
+    }
+    return ESP_OK;
 }
 
 esp_err_t pc_io_reset() {
@@ -87,7 +75,10 @@ esp_err_t pc_io_reset() {
 }
 
 esp_err_t pc_io_power_off() {
-    return start_pc_io_timer(power_off_timer);
+    if (pc_io_is_powered()) {
+        return start_pc_io_timer(power_off_timer);
+    }
+    return ESP_OK;
 }
 
 bool pc_io_is_powered() {
@@ -110,7 +101,9 @@ void pc_io_reset_task(TimerHandle_t handle) {
 
 void pc_io_power_off_task(TimerHandle_t handle) {
     gpio_set_level(POWER_SW_PIN, 1);
-    vTaskDelay(6000 / portTICK_RATE_MS);
+    for (int i = 0; i < 60 && pc_io_is_powered(); i++) {
+        vTaskDelay(100 / portTICK_RATE_MS);
+    }
     gpio_set_level(POWER_SW_PIN, 0);
     pc_io_busy = false;
 }
