@@ -11,6 +11,15 @@
 #define WEBSOCKET_OPCODE_CLOSE 0x08
 
 typedef esp_err_t (*websocket_recieve_callback) (httpd_req_t *, uint8_t opcode, uint8_t *, int);
+typedef esp_err_t (*websocket_start_callback) (httpd_req_t *);
+typedef esp_err_t (*websocket_exit_callback) (httpd_req_t *);
+
+typedef struct websocket_ctx {
+    websocket_start_callback on_start;
+    websocket_recieve_callback on_recieve;
+    websocket_exit_callback on_exit;
+} websocket_ctx;
+
 httpd_handle_t start_websocket(uint32_t port);
 
 #endif

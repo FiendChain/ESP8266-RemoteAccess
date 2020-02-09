@@ -35,12 +35,20 @@
 #define INIT_TAG "initialisation"
 
 static httpd_handle_t websocket = NULL;
-    
+static esp_err_t websocket_start(httpd_req_t *request);
+static esp_err_t websocket_end(httpd_req_t *request);
+
+static websocket_ctx websocket_uri_context = {
+    .on_start = websocket_start,
+    .on_recieve = listen_websocket,
+    .on_exit = websocket_end,
+};
+
 static httpd_uri_t websocket_uri = {
     .uri = "/api/v1/websocket",
     .method = HTTP_GET,
     .handler = websocket_handler,
-    .user_ctx = listen_websocket
+    .user_ctx = &websocket_uri_context
 };
 
 void app_main()
@@ -68,4 +76,14 @@ void app_main()
     // vTaskStartScheduler();
     // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");
     ESP_LOGI(INIT_TAG, "Finished initialisation!");
+}
+
+esp_err_t websocket_start(httpd_req_t *request) {
+    ESP_LOGI("websocket-start", "Websocket has started");
+    return ESP_OK;
+}
+
+esp_err_t websocket_end(httpd_req_t *request) {
+    ESP_LOGI("websocket-end", "Websocket has ended");
+    return ESP_OK;
 }

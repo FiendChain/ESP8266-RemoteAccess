@@ -48,17 +48,29 @@ esp_err_t websocket_handler(httpd_req_t *request) {
         return ESP_FAIL;
     }
 
+
     ESP_LOGI(TAG, "Starting websocket");
+    websocket_ctx *context = (websocket_ctx *)(request->user_ctx);
+    websocket_start_callback start_callback = (context != NULL) ? context->on_start : NULL;
+    websocket_exit_callback exit_callback = (context != NULL) ? context->on_exit : NULL;
+
+    if (start_callback != NULL) {
+        start_callback(request);
+    }
     while (websocket_read_data(request) == ESP_OK) {
 
     }
     ESP_LOGI(TAG, "Closing websocket");
+    if (exit_callback != NULL) {
+        exit_callback(request);
+    }
 
     return ESP_FAIL;
 }
 
 esp_err_t websocket_read_data(httpd_req_t *request) {
-    websocket_recieve_callback callback = (websocket_recieve_callback)(request->user_ctx);
+    websocket_ctx *context = (websocket_ctx *)(request->user_ctx);
+    websocket_recieve_callback callback = (context != NULL) ? context->on_recieve : NULL;
     if (callback == NULL) {
         return ESP_OK;
     }
