@@ -23,7 +23,7 @@ static pc_io_status_listener_node *listeners = NULL;
 static xQueueHandle event_queue = NULL;
 
 static void pc_io_interrupt_task(void *arg);
-static void pc_io_status_interrupt(void *ignore);
+static void IRAM_ATTR pc_io_status_interrupt(void *ignore);
 
 
 void pc_io_interrupt_init() {
@@ -31,7 +31,11 @@ void pc_io_interrupt_init() {
     xTaskCreate(pc_io_interrupt_task, "pc-io-int-task", 2048, NULL, 10, NULL);
     gpio_set_intr_type(POWER_STATUS_PIN, GPIO_INTR_ANYEDGE);
     gpio_install_isr_service(0);
-    if (gpio_isr_handler_add(POWER_STATUS_PIN, pc_io_status_interrupt, NULL)) {
+    esp_err_t status = gpio_isr_handler_add(POWER_STATUS_PIN, pc_io_status_interrupt, NULL);
+    // portENTER_CRITICAL();
+    // esp_err_t status = gpio_isr_register(pc_io_status_interrupt, NULL, 0, NULL);
+    // portEXIT_CRITICAL();
+    if (status != ESP_OK) {
         ESP_LOGE(TAG, "Failed to setup ISR for pc status");
     } else {
         ESP_LOGD(TAG, "Successfully register ISR for pc status");
@@ -39,7 +43,7 @@ void pc_io_interrupt_init() {
     ESP_LOGD(TAG, "Successfully setup pc io interrupts");
 }
 
-void pc_io_status_interrupt(void *ignore) {
+void IRAM_ATTR pc_io_status_interrupt(void *ignore) {
     uint32_t data = 0;
     xQueueSendFromISR(event_queue, &data, NULL);
 }

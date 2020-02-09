@@ -14,7 +14,7 @@ static uint8_t temperature = 0;
 static uint8_t humidity = 0;
 
 static int32_t dht11_wait_signal(uint32_t timeout, uint32_t level);
-static esp_err_t dht11_read_data();
+static esp_err_t IRAM_ATTR dht11_read_data();
 
 // https://github.com/FiendChain/ELEC3117-AVR-PostBox/blob/master/PostBox/PostBox/lib/dht11/dht11.h
 // https://www.mouser.com/datasheet/2/758/DHT11-Technical-Data-Sheet-Translated-Version-1143054.pdf
@@ -48,7 +48,7 @@ esp_err_t dht11_read() {
     return ESP_OK;
 }
 
-esp_err_t dht11_read_data() {
+esp_err_t IRAM_ATTR dht11_read_data() {
     // pulldown for at least 18ms
     gpio_set_level(DHT11_PIN, 0);
     os_delay_us(20000);
