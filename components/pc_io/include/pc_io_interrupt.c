@@ -25,6 +25,8 @@ static xQueueHandle event_queue = NULL;
 static void pc_io_interrupt_task(void *arg);
 static void IRAM_ATTR pc_io_status_interrupt(void *ignore);
 
+static bool last_powered_status = false;
+
 
 void pc_io_interrupt_init() {
     event_queue = xQueueCreate(10, sizeof(uint32_t));
@@ -53,6 +55,8 @@ void pc_io_interrupt_task(void *arg) {
     while (1) {
         if (xQueueReceive(event_queue, &buffer, portMAX_DELAY)) {
             bool is_powered = pc_io_is_powered();
+            if (last_powered_status == is_powered) continue;
+            last_powered_status = is_powered;
             pc_io_status_listener_node *head = listeners;
             int i = 0;
             while (head != NULL) {
