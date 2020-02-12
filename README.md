@@ -3,6 +3,8 @@ Able to remote boot and reset a computer by hooking into the motherboard front I
 Also features an 8 channel PWM array of open collector LED drivers for PC lighting.
 Built off the RTOS SDK by Espressif for the ESP8266.  
 
+Client for controlling this server can be [found here](https://github.com/FiendChain/ESP8266-RemoteAccess-UI).
+
 ### Completed
 * Basic WiFi connectivity to local WLAN 
 * Websocket implemented
@@ -14,7 +16,14 @@ Built off the RTOS SDK by Espressif for the ESP8266.
   * Autoconnect to the server
   * Able to connect over local WLAN or remotely through a static ip (port forwarding)
 
-### TODO 
+## Gallery
+### PCB 
+![alt text](docs/pcb.png "PCB")
+### PCB installed inside test computer
+Motherboard IO breakout is connected, as well as two led strips.
+![alt text](docs/pcb_installed.PNG "Installed inside computer with IO jumpers")
+
+## TODO 
 #### Micontroller
 * Add button/jumper for user initialisation on pre-boot
   * Connect to access point to configure settings
