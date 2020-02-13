@@ -21,7 +21,7 @@ Client for controlling this server can be [found here](https://github.com/FiendC
 ![alt text](docs/pcb.png "PCB")
 ### PCB installed inside test computer
 Motherboard IO breakout is connected, as well as two led strips.
-![alt text](docs/pcb_installed.PNG "Installed inside computer with IO jumpers")
+![alt text](docs/pcb_installed.png "Installed inside computer with IO jumpers")
 
 ## TODO 
 #### Micontroller
