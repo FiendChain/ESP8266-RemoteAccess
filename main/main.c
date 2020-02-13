@@ -7,6 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -32,9 +33,12 @@
 #include "websocket_io.h"
 #include "websocket_listener.h"
 
+#include "web_server/server.h"
+
 #define INIT_TAG "initialisation"
 
 static httpd_handle_t websocket = NULL;
+static httpd_handle_t webserver = NULL;
 
 static websocket_ctx websocket_uri_context = {
     .on_start = listen_websocket_start,
@@ -69,7 +73,8 @@ void app_main()
         set_pwm_value(i, 0);
     }
 
-    websocket = start_websocket(80);
+    websocket = start_websocket(3200);
+    webserver = start_webserver(80);
     httpd_register_uri_handler(websocket, &websocket_uri);
     // vTaskStartScheduler();
     // ESP_LOGI(INIT_TAG, "Starting task scheduler!\n");
