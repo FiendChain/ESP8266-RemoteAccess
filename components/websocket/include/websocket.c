@@ -17,7 +17,7 @@ httpd_handle_t start_websocket(uint32_t port) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = port;
-    // config.ctrl_port = 32767;
+    config.ctrl_port = 32767;
     config.recv_wait_timeout = 60 * 60 * 1; // 1 hour timeout for recieve
     config.lru_purge_enable = true;
 
