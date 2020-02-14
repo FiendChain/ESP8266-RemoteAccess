@@ -52,6 +52,7 @@ httpd_handle_t start_webserver(uint32_t port) {{
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = port;
+    config.max_uri_handlers = {max_handles};
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -119,7 +120,8 @@ httpd_uri_t {name} = {{
         files=files,
         functions=functions_str,
         uris=uris_str,
-        code=code)
+        code=code, 
+        max_handles=len(uris))
     return source_file
 
 def escape_source(string):
@@ -135,13 +137,14 @@ def escape_source(string):
 
 def reroot_file_strings(file_strings, root):
     for filepath, file in file_strings:
+        filepath = os.path.relpath(filepath, root)
         filepath = filepath.replace("\\", "/")
-        filepath = filepath.replace(root, "")
+        filepath = f"/{filepath}"
         yield (filepath, file)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_dir", default="webserver_files", type=str)
+    parser.add_argument("input_dir", type=str)
     parser.add_argument("--output_dir", default="components/web_server/include/web_server/", type=str)
     parser.add_argument("--output_file", default="server.{ext}" ,type=str)
 
